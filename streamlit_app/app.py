@@ -85,10 +85,64 @@ def preprocess_image(image: Image.Image, device) -> torch.Tensor:
     return transform(image.convert("RGB")).unsqueeze(0).to(device)
 
 # --- App UI ---
-st.set_page_config(page_title="Gas Cylinder Classifier", layout="centered")
+st.set_page_config(page_title="Gas Cylinder Classifier", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("Gas Cylinder Classifier")
-st.markdown("Upload an image of a gas cylinder to classify its brand, size, color, and presence.")
+# Custom CSS for a modern website look
+st.markdown("""
+<style>
+    /* Hide Streamlit default UI elements */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Global styling */
+    .stApp {
+        background-color: #0f172a;
+        color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Custom Header */
+    .hero-container {
+        padding: 3rem 0;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: #38bdf8;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+    }
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: #94a3b8;
+    }
+    
+    /* Result Cards */
+    div[data-testid="metric-container"] {
+        background-color: #1e293b;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        border: 1px solid #334155;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    
+    /* Typography tweaks */
+    h1, h2, h3 {
+        color: #f8fafc !important;
+        font-weight: 600 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-title">Gas Cylinder Vision</div>
+    <div class="hero-subtitle">Automated visual inspection system for industrial cylinders</div>
+</div>
+""", unsafe_allow_html=True)
 
 model, device, load_error = get_model()
 
@@ -97,40 +151,49 @@ if load_error:
     st.error(str(load_error))
     st.stop()
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png", "webp"])
+# Main Container
+with st.container():
+    st.markdown("### Upload Image")
+    uploaded_file = st.file_uploader("Select a cylinder image for analysis", type=["jpg", "jpeg", "png", "webp"], label_visibility="collapsed")
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_container_width=True)
-    
-    with st.spinner("Classifying..."):
-        input_tensor = preprocess_image(image, device)
-        with torch.no_grad():
-            preds = model(input_tensor)
+    if uploaded_file is not None:
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_img, col_res = st.columns([1, 1], gap="large")
         
-        brand_probs = F.softmax(preds['brand'][0], dim=0).cpu().numpy()
-        size_probs = F.softmax(preds['size'][0], dim=0).cpu().numpy()
-        color_probs = F.softmax(preds['color'][0], dim=0).cpu().numpy()
-        presence_probs = F.softmax(preds['presence'][0], dim=0).cpu().numpy()
-
-        brand_idx = int(np.argmax(brand_probs))
-        size_idx = int(np.argmax(size_probs))
-        color_idx = int(np.argmax(color_probs))
-        presence_idx = int(np.argmax(presence_probs))
+        with col_img:
+            image = Image.open(uploaded_file)
+            st.image(image, use_container_width=True)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Brand", BRAND_CLASSES[brand_idx], f"{brand_probs[brand_idx]*100:.1f}%")
-            st.metric("Color", COLOR_CLASSES[color_idx], f"{color_probs[color_idx]*100:.1f}%")
-        with col2:
-            st.metric("Size", SIZE_CLASSES[size_idx], f"{size_probs[size_idx]*100:.1f}%")
-            st.metric("Presence", PRESENCE_CLASSES[presence_idx], f"{presence_probs[presence_idx]*100:.1f}%")
+        with col_res:
+            with st.spinner("Analyzing image..."):
+                input_tensor = preprocess_image(image, device)
+                with torch.no_grad():
+                    preds = model(input_tensor)
+                
+                brand_probs = F.softmax(preds['brand'][0], dim=0).cpu().numpy()
+                size_probs = F.softmax(preds['size'][0], dim=0).cpu().numpy()
+                color_probs = F.softmax(preds['color'][0], dim=0).cpu().numpy()
+                presence_probs = F.softmax(preds['presence'][0], dim=0).cpu().numpy()
 
-        st.markdown("---")
-        st.write("### Detailed Probabilities")
+                brand_idx = int(np.argmax(brand_probs))
+                size_idx = int(np.argmax(size_probs))
+                color_idx = int(np.argmax(color_probs))
+                presence_idx = int(np.argmax(presence_probs))
+                
+                st.markdown("### Analysis Results")
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric("Brand", BRAND_CLASSES[brand_idx])
+                    st.metric("Color", COLOR_CLASSES[color_idx])
+                with m2:
+                    st.metric("Size", SIZE_CLASSES[size_idx])
+                    st.metric("Status", PRESENCE_CLASSES[presence_idx])
+
+        st.markdown("<hr style='border-color: #334155; margin: 3rem 0;'>", unsafe_allow_html=True)
+        st.markdown("### Confidence Scores")
         
         def show_probs(task_name, probs, classes):
-            st.write(f"**{task_name}**")
+            st.markdown(f"**{task_name}**")
             for prob, cls in zip(probs, classes):
                 st.progress(float(prob), text=f"{cls}: {prob*100:.1f}%")
 
