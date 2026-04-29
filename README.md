@@ -125,19 +125,19 @@ The multi-task model evaluation generates individual confusion matrices for Bran
 
 **Brand Classification**
 
-![Confusion Matrix - Brand](models/evaluation_results/confusion_matrix_brand.png)
+![Confusion Matrix - Brand](./confusion_matrix_brand.png)
 
 **Size Classification**
 
-![Confusion Matrix - Size](models/evaluation_results/confusion_matrix_size.png)
+![Confusion Matrix - Size](./confusion_matrix_size.png)
 
 **Color Classification**
 
-![Confusion Matrix - Color](models/evaluation_results/confusion_matrix_color.png)
+![Confusion Matrix - Color](./confusion_matrix_color.png)
 
 **Presence Classification**
 
-![Confusion Matrix - Presence](models/evaluation_results/confusion_matrix_presence.png)
+![Confusion Matrix - Presence](./confusion_matrix_presence.png)
 
 **Target metrics:**
 - Overall accuracy: >85%
